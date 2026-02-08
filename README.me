@@ -1,0 +1,21 @@
+# RARJPEG Detector
+
+## Task Descriptions
+
+The program determines whether the specified file is a **RARJPEG** (an image with an archive appended to the end) or a regular archive, and displays a list of files in the archive if the specified file is a regular archive.
+
+## Functionality
+
+1 **Determining the file type:**
+-jPEG
+-ZIP
+-RARJPEG(JPEG+ZIP)
+-Unknown format
+
+2 **The algorithm of operation**
+-Checking the initial file signature (JPEG: '0xFFD8')
+-Searching for the final signature (ZIP:'PK...')
+-Analyzing the difference between the initial and final signatures
+-Outputting a list of files if an archive is found
+
+3 **Needed to add testing data**
