@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.16)
 
-project(untitled LANGUAGES C)
+project(rarjpeg LANGUAGES C)
 
 add_executable(untitled main.c)
 
