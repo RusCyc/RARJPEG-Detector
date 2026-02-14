@@ -7,15 +7,16 @@
 const unsigned char jpeg_soi[] = {'\xFF', '\xD8'};
 const unsigned char jpeg_eoi[] = {'\xFF', '\xD9'};
 
+int search_pattern(FILE *file, const unsigned char pattern[], size_t size);
+int is_jpeg_file(FILE *file);
+
 int main(int argc, char *argv[]) {
-    // Проверка аргументов
     if (argc != 2) {
         printf("Использование: %s <файл>\n", argv[0]);
         return 1;
     }
     char *filename = argv[1];
 
-    // open file
     FILE *file = fopen(filename, "rb");
     if (file == NULL) {
         fprintf(stderr, "Error: Can't open file : %s\n", strerror(errno));
@@ -23,42 +24,50 @@ int main(int argc, char *argv[]) {
         return 1;
     }
 
-    // 1. СНАЧАЛА проверяем SOI в начале файла
-    unsigned char buffer[2];
-    size_t bytes_read = fread(buffer, 1, 2, file);
-    if (bytes_read != 2) {
-        fprintf(stderr, "Error: The file is too short or corrupted\n");
-        fclose(file);
-        return 1;
-    }
+    if (is_jpeg_file(file) <= 0)
+        fprintf(stderr, "Not jpeg!\n");
+    else
+        fprintf(stderr, "jpeg!\n");
 
-    if (buffer[0] != jpeg_soi[0] || buffer[1] != jpeg_soi[1]) {
-        printf("Not JPEG: No SOI marker\n");
-        fclose(file);
-        return 1;
-    }
+    fclose(file);
+    return 0;
+}
 
-    // 2. ПОТОМ ищем EOI по всему файлу
-    unsigned char eoi_check[2];
-    int found_eoi = 0;
+// search_pattern
+int search_pattern(FILE *file, const unsigned char pattern[], size_t size)
+{
+    int match_pos = 0;
+    int c;
+    long start_pos = ftell(file);
 
-    while (fread(eoi_check, 1, 2, file) == 2) {
-        if (eoi_check[0] == jpeg_eoi[0] && eoi_check[1] == jpeg_eoi[1]) {
-            found_eoi = 1;
-            break;
+    while ((c = fgetc(file)) != EOF) {
+        if (c == pattern[match_pos]) {
+            match_pos++;
+            if (match_pos == size) {
+                return 1;
+            }
+        } else {
+            if (match_pos > 0) {
+                fseek(file, -match_pos, SEEK_CUR);
+                match_pos = 0;
+            }
         }
-        fseek(file, -1, SEEK_CUR);
     }
 
-    // 3. Результат
-    if (found_eoi) {
-        printf("JPEG\n");
-        fclose(file);
+    fseek(file, start_pos, SEEK_SET);
+    return 0;
+}
+
+// is_jpeg_file
+int is_jpeg_file(FILE *file)
+{
+    if (!search_pattern(file, jpeg_soi, 2)) {
+        printf("Not JPEG: No SOI marker\n");
         return 0;
-    } else {
-        printf("Not JPEG: No EOI marker found\n");
-        fclose(file);
-        return 1;
     }
 
+    if (!search_pattern(file, jpeg_eoi, 2)) {
+        printf("Not JPEG: No EOI marker\n");
+        return 0;
+    }
 }
