@@ -12,7 +12,7 @@ int is_jpeg_file(FILE *file);
 
 int main(int argc, char *argv[]) {
     if (argc != 2) {
-        printf("Использование:%s <файл>\n", argv[0]);
+        printf("Использование: %s <файл>\n", argv[0]);
         return 1;
     }
     char *filename = argv[1];
