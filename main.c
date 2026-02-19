@@ -200,12 +200,12 @@ void read_central_directory(FILE *file, long cd_start, uint16_t total_entries) {
         }
         filename[filename_len] = '\0';
 
-        // 7. Выводим имя
+
         printf("  %d. %s\n", i + 1, filename);
 
         free(filename);
 
-        // 8. Пропускаем extra и comment
+
         fseek(file, extra_len + comment_len, SEEK_CUR);
     }
 }
