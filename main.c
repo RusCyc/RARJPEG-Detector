@@ -6,17 +6,17 @@
 #include <stdint.h>
 
 // Паттерны для поиска и их длины
-const unsigned char jpeg_soi[] = {'\xFF', '\xD8'};  // ВЕРНУЛ КОВЫЧКИ
+const unsigned char jpeg_soi[] = {'\xFF', '\xD8'};
 const size_t jpeg_soi_size = 2;
 
-const unsigned char jpeg_eoi[] = {'\xFF', '\xD9'};  // ВЕРНУЛ КОВЫЧКИ
+const unsigned char jpeg_eoi[] = {'\xFF', '\xD9'};
 const size_t jpeg_eoi_size = 2;
 
 // zip сигнатуры
-const unsigned char zip_eocd[] = {'\x50', '\x4B', '\x05', '\x06'};  // ВЕРНУЛ КОВЫЧКИ
+const unsigned char zip_eocd[] = {'\x50', '\x4B', '\x05', '\x06'};
 const size_t zip_eocd_size = 4;
 
-const unsigned char zip_cd[] = {'\x50', '\x4B', '\x01', '\x02'};    // ВЕРНУЛ КОВЫЧКИ
+const unsigned char zip_cd[] = {'\x50', '\x4B', '\x01', '\x02'};
 const size_t zip_cd_size = 4;
 
 #pragma pack(push, 1)
@@ -126,9 +126,8 @@ long find_zip_end(FILE *file) {
     fseek(file, 0, SEEK_END);
     long file_size = ftell(file);
 
-    long start_pos = (file_size > 66000) ? file_size - 66000 : 0;
-
-    for (long pos = file_size - 4; pos >= start_pos; pos--) {
+    // Ищем с конца файла (минус 4 байта, так как паттерн 4-байтный)
+    for (long pos = file_size - 4; pos >= 0; pos--) {
         fseek(file, pos, SEEK_SET);
         if (search_pattern(file, zip_eocd, 4)) {
             fseek(file, saved_pos, SEEK_SET);
@@ -173,19 +172,22 @@ void read_central_directory(FILE *file, long cd_start, uint16_t total_entries) {
         }
 
         // 2. Пропускаем 28 байт (до длины имени)
-        fseek(file, 28, SEEK_CUR);
+        fseek(file, 24, SEEK_CUR);
 
         // 3. Читаем длину имени (2 байта)
         uint16_t filename_len;
-        if (fread(&filename_len, 2, 1, file) != 1) break;
+        if (fread(&filename_len, 2, 1, file) != 1)
+            break;
 
         // 4. Читаем длины extra и comment (4 байта)
         uint16_t extra_len, comment_len;
-        if (fread(&extra_len, 2, 1, file) != 1) break;
-        if (fread(&comment_len, 2, 1, file) != 1) break;
+        if (fread(&extra_len, 2, 1, file) != 1)
+            break;
+        if (fread(&comment_len, 2, 1, file) != 1)
+            break;
 
         // 5. Пропускаем 14 байт (до имени файла)
-        fseek(file, 14, SEEK_CUR);
+        fseek(file, 12, SEEK_CUR);
 
         // 6. Читаем имя файла
         char *filename = malloc(filename_len + 1);
@@ -194,7 +196,7 @@ void read_central_directory(FILE *file, long cd_start, uint16_t total_entries) {
             break;
         }
 
-        if (fread(filename, 1, filename_len, file) != filename_len) {
+        if (fread(filename, filename_len, 1, file) != 1) {
             free(filename);
             break;
         }
