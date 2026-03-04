@@ -50,29 +50,32 @@ int main(int argc, char *argv[]) {
         return 1;
     }
 
-    if (is_jpeg_file(file) == 1)
-        printf("JPEG file detected!\n");
-    else
+    if (is_jpeg_file(file) != 1) {
         printf("Not a JPEG file!\n");
+        return 0;
+    }
+
+    printf("JPEG file detected!\n");
 
     //Возвращаемся в начало файла
     rewind(file);
     long zip_pos = find_zip_end(file);
 
-    if (zip_pos != -1) {
-        printf("ZIP найден на позиции: %ld\n", zip_pos);
-
-        // читаем информацию из хвоста
-        uint16_t total_entries;
-        uint32_t cd_size;
-        if (read_eocd_info(file, zip_pos, &total_entries, &cd_size)) {
-            printf("  Файлов в архиве: %u\n", total_entries);
-            printf("  Размер оглавления: %u байт\n", cd_size);
-            printf("\nСодержимое архива:\n");
-            read_central_directory(file, zip_pos - cd_size, total_entries);
-        }
-    } else {
+    if (zip_pos == -1) {
         printf("ZIP не найден\n");
+        return 0;
+    };
+
+    printf("ZIP найден на позиции: %ld\n", zip_pos);
+
+    // читаем информацию из хвоста
+    uint16_t total_entries;
+    uint32_t cd_size;
+    if (read_eocd_info(file, zip_pos, &total_entries, &cd_size)) {
+        printf("  Файлов в архиве: %u\n", total_entries);
+        printf("  Размер оглавления: %u байт\n", cd_size);
+        printf("\nСодержимое архива:\n");
+        read_central_directory(file, zip_pos - cd_size, total_entries);
     }
 
     fclose(file);
@@ -106,13 +109,8 @@ int search_pattern(FILE *file, const unsigned char pattern[], size_t size)
 
 int is_jpeg_file(FILE *file)
 {
-    if (!search_pattern(file, jpeg_soi, jpeg_soi_size)) {
-        printf("Not JPEG: No SOI marker\n");
-        return 0;
-    }
-
-    if (!search_pattern(file, jpeg_eoi, jpeg_eoi_size)) {
-        printf("Not JPEG: No EOI marker\n");
+    if (!search_pattern(file, jpeg_soi, jpeg_soi_size) && !search_pattern(file, jpeg_eoi, jpeg_eoi_size)) {
+        printf("Not JPEG\n");
         return 0;
     }
 
@@ -127,14 +125,12 @@ long find_zip_end(FILE *file) {
     long file_size = ftell(file);
 
     // Ищем с конца файла (минус 4 байта, так как паттерн 4-байтный)
-    for (long pos = file_size - 4; pos >= 0; pos--) {
+    for (long pos = 0; pos <= file_size - 4; pos++) {
         fseek(file, pos, SEEK_SET);
         if (search_pattern(file, zip_eocd, 4)) {
-            fseek(file, saved_pos, SEEK_SET);
             return pos;
         }
     }
-
     fseek(file, saved_pos, SEEK_SET);
     return -1;
 }
