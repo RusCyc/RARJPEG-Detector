@@ -55,7 +55,7 @@ int main(int argc, char *argv[]) {
     else
         printf("Not a JPEG file!\n");
 
-    // возвращаемся в начало файла
+    //Возвращаемся в начало файла
     rewind(file);
     long zip_pos = find_zip_end(file);
 
